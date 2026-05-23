@@ -1,6 +1,6 @@
-export { default as errorHandler } from './errorHandler';
-export { default as protect } from './authMiddleware';
-export { default as validateBody } from './validateBody';
-export { default as adminOnly } from './adminOnly';
-export { default as validateQuery } from './validateQuery';
-export * from './rateLimiter';
+export { default as errorHandler } from './errorHandler.ts';
+export { default as protect } from './authMiddleware.ts';
+export { default as validateBody } from './validateBody.ts';
+export { default as adminOnly } from './adminOnly.ts';
+export { default as validateQuery } from './validateQuery.ts';
+export * from './rateLimiter.ts';
