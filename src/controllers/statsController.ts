@@ -1,26 +1,49 @@
 import type { RequestHandler } from 'express';
-import { startOfISOWeek, endOfISOWeek } from 'date-fns';
+import {
+    startOfISOWeek,
+    endOfISOWeek,
+    startOfMonth,
+    endOfMonth,
+} from 'date-fns';
 import { Client } from '#models';
 import { Appointment } from '#models';
 import { User } from '#models';
+
+const OVERHEAD_FACTOR = 1.3;
+const CANCELLED_CREDIT_MINUTES = 90;
+const CANCELLED_MAX_PER_MONTH = 2;
+
+const applyOverhead = (minutes: number) =>
+    Math.round(minutes * OVERHEAD_FACTOR);
 
 // GET /stats/workload  (Admin only)
 // Gibt für jede Fachkraft: zugewiesene Klienten + Minuten der aktuellen Woche
 export const getWorkload: RequestHandler = async (_req, res, next) => {
     try {
-        const weekStart = startOfISOWeek(new Date());
-        const weekend = endOfISOWeek(new Date());
+        const now = new Date();
+        const weekStart = startOfISOWeek(now);
+        const weekEnd = endOfISOWeek(now);
+        const monthStart = startOfMonth(now);
+        const monthEnd = endOfMonth(now);
 
         // Alle aktiven Klienten mit ihren zugewiesenen FKs
         const clients = await Client.find({ status: 'aktiv' })
             .select('familyName assignedFachkraefte weeklyHoursQuota')
             .lean();
         // Alle durchgeführten Termine dieser Woche
-        const appointments = await Appointment.find({
+        const performedAppointments = await Appointment.find({
             status: 'durchgeführt',
-            date: { $gte: weekStart, $lte: weekend },
+            date: { $gte: weekStart, $lte: weekEnd },
         })
             .select('clientId durationHours durationMinutes createdBy')
+            .lean();
+        // Alle ausgefallenen Termine des aktuellen Kalendermonats
+        const cancelledAppointments = await Appointment.find({
+            status: 'ausgefallen',
+            date: { $gte: monthStart, $lte: monthEnd },
+        })
+            .select('clientId date')
+            .sort({ date: 1 })
             .lean();
         // Alle Fachkräfte
         const fachkraefte = await User.find({ role: 'fachkraft' })
@@ -40,13 +63,13 @@ export const getWorkload: RequestHandler = async (_req, res, next) => {
                 0,
             );
 
-            // Geleistete Minuten: Termine, bei denen diese FK eingetragen hat
-            // UND der Klient ihr zugewiesen ist
             const assignedClientIds = new Set(
                 assignedClients.map((c) => c._id.toString()),
             );
 
-            const workedMinutes = appointments
+            // Geleistete Minuten: Termine, bei denen diese FK eingetragen hat
+            // UND der Klient ihr zugewiesen ist
+            const rawPerformedMinutes = performedAppointments
                 .filter(
                     (a) =>
                         a.createdBy.toString() === fkId &&
@@ -56,6 +79,30 @@ export const getWorkload: RequestHandler = async (_req, res, next) => {
                     (sum, a) => sum + a.durationHours * 60 + a.durationMinutes,
                     0,
                 );
+            const performedMinutes = applyOverhead(rawPerformedMinutes);
+
+            // Ausgefallene Termine: pro zugewiesenem Klient bis zu 2/Monat,
+            // davon die in dieser Woche werden anteilig angerechnet.
+            let cancelledCreditedCount = 0;
+            for (const clientId of assignedClientIds) {
+                const clientCancelled = cancelledAppointments.filter(
+                    (a) => a.clientId.toString() === clientId,
+                );
+                const eligible = clientCancelled.slice(
+                    0,
+                    CANCELLED_MAX_PER_MONTH,
+                );
+                const inThisWeek = eligible.filter(
+                    (a) =>
+                        new Date(a.date) >= weekStart &&
+                        new Date(a.date) <= weekEnd,
+                );
+                cancelledCreditedCount += inThisWeek.length;
+            }
+            const cancelledCreditMinutes =
+                cancelledCreditedCount * applyOverhead(CANCELLED_CREDIT_MINUTES);
+
+            const workedMinutes = performedMinutes + cancelledCreditMinutes;
 
             const utilizationPercent =
                 quotaMinutes > 0
@@ -71,6 +118,9 @@ export const getWorkload: RequestHandler = async (_req, res, next) => {
                 clientCount: assignedClients.length,
                 quotaMinutes,
                 workedMinutes,
+                performedMinutes,
+                cancelledCreditedCount,
+                cancelledCreditMinutes,
                 utilizationPercent,
             };
         });
@@ -87,8 +137,11 @@ export const getClientHours: RequestHandler<{ id: string }> = async (
     next,
 ) => {
     try {
-        const weekStart = startOfISOWeek(new Date());
-        const weekEnd = endOfISOWeek(new Date());
+        const now = new Date();
+        const weekStart = startOfISOWeek(now);
+        const weekEnd = endOfISOWeek(now);
+        const monthStart = startOfMonth(now);
+        const monthEnd = endOfMonth(now);
 
         const client = await Client.findById(req.params.id).lean();
         if (!client) {
@@ -106,7 +159,7 @@ export const getClientHours: RequestHandler<{ id: string }> = async (
             }
         }
 
-        const appointments = await Appointment.find({
+        const performedAppointments = await Appointment.find({
             clientId: req.params.id,
             status: 'durchgeführt',
             date: { $gte: weekStart, $lte: weekEnd },
@@ -114,10 +167,34 @@ export const getClientHours: RequestHandler<{ id: string }> = async (
             .select('durationHours durationMinutes date type')
             .lean();
 
-        const totalMinutes = appointments.reduce(
+        const cancelledThisMonth = await Appointment.find({
+            clientId: req.params.id,
+            status: 'ausgefallen',
+            date: { $gte: monthStart, $lte: monthEnd },
+        })
+            .select('date type')
+            .sort({ date: 1 })
+            .lean();
+
+        const rawPerformedMinutes = performedAppointments.reduce(
             (sum, a) => sum + a.durationHours * 60 + a.durationMinutes,
             0,
         );
+        const performedMinutes = applyOverhead(rawPerformedMinutes);
+
+        const eligibleCancelled = cancelledThisMonth.slice(
+            0,
+            CANCELLED_MAX_PER_MONTH,
+        );
+        const cancelledInWeek = eligibleCancelled.filter(
+            (a) =>
+                new Date(a.date) >= weekStart && new Date(a.date) <= weekEnd,
+        );
+        const cancelledCreditedCount = cancelledInWeek.length;
+        const cancelledCreditMinutes =
+            cancelledCreditedCount * applyOverhead(CANCELLED_CREDIT_MINUTES);
+
+        const totalMinutes = performedMinutes + cancelledCreditMinutes;
 
         const quotaMinutes = client.weeklyHoursQuota * 60;
         const progressPercent =
@@ -132,9 +209,14 @@ export const getClientHours: RequestHandler<{ id: string }> = async (
                 weeklyHoursQuota: client.weeklyHoursQuota,
                 quotaMinutes,
                 totalMinutes,
+                performedMinutes,
+                cancelledCreditedCount,
+                cancelledCreditMinutes,
                 progressPercent,
-                appointments,
+                appointments: performedAppointments,
             },
         });
-    } catch (error) {}
+    } catch (error) {
+        next(error);
+    }
 };
