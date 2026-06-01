@@ -12,7 +12,7 @@ router.post(
     validateBody(uploadUrlSchema),
     getUploadUrl,
 );
-router.patch('/:id/cofirm', protect, confirmUpload);
+router.patch('/:id/confirm', protect, confirmUpload);
 router.delete('/:id', protect, deleteDocument);
 
 export default router;
