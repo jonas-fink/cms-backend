@@ -6,6 +6,7 @@ export const createUserSchema = z.object({
     email: z.email('Ungültige E-Mail'),
     password: z.string().min(8, 'Mindestens 8 Zeichen'),
     role: z.enum(['admin', 'fachkraft']).default('fachkraft'),
+    maxClients: z.number().int().min(0).max(50).default(6),
 });
 
 export const updateUserSchema = z
@@ -15,6 +16,7 @@ export const updateUserSchema = z
         email: z.email('Ungültige E-Mail'),
         password: z.string().min(8, 'Mindestens 8 Zeichen'),
         role: z.enum(['admin', 'fachkraft']).default('fachkraft'),
+        maxClients: z.number().int().min(0).max(50).optional(),
     })
     .refine((data) => Object.keys(data).length > 0, {
         message: 'Mindestens ein Feld erforderlich',

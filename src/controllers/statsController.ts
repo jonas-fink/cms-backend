@@ -62,7 +62,7 @@ export const getWorkload: RequestHandler = async (_req, res, next) => {
             .lean();
         // Alle Fachkräfte
         const fachkraefte = await User.find({ role: 'fachkraft' })
-            .select('firstName lastName email')
+            .select('firstName lastName email maxClients')
             .lean();
 
         const workload = fachkraefte.map((fk) => {
@@ -145,6 +145,7 @@ export const getWorkload: RequestHandler = async (_req, res, next) => {
                     email: fk.email,
                 },
                 clientCount: assignedClients.length,
+                maxClients: fk.maxClients ?? 6,
                 quotaMinutes,
                 workedMinutes,
                 performedMinutes,

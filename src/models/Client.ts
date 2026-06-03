@@ -8,6 +8,7 @@ export interface IClient extends Document {
     caseNumber?: string;
     children: { name: string; age: number }[];
     address?: string;
+    phone?: string;
     jugendamtContact?: string;
     assignedFachkraefte: Types.ObjectId[];
     nextReport: Date;
@@ -32,6 +33,7 @@ const ClientSchema = new Schema<IClient>(
         caseNumber: { type: String, unique: true },
         children: [ChildSchema],
         address: { type: String },
+        phone: { type: String },
         jugendamtContact: { type: String },
         assignedFachkraefte: [{ type: Types.ObjectId, ref: 'User' }],
         nextReport: { type: Date, required: true },

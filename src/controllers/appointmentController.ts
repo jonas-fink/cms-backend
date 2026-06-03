@@ -59,7 +59,7 @@ export const createAppointment: RequestHandler<
             createdBy: new mongoose.Types.ObjectId(req.userId!),
         });
 
-        res.status(201).json({ data: { appointment } });
+        res.status(201).json({ data: appointment });
     } catch (err) {
         next(err);
     }

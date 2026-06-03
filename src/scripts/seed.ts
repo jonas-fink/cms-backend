@@ -31,11 +31,11 @@ const ADMIN = {
 };
 
 const FACHKRAEFTE = [
-    { firstName: 'Anna', lastName: 'Berger', email: 'a.berger@spfh.de' },
-    { firstName: 'Markus', lastName: 'Lehner', email: 'm.lehner@spfh.de' },
-    { firstName: 'Sara', lastName: 'Wolff', email: 's.wolff@spfh.de' },
-    { firstName: 'Tobias', lastName: 'Huber', email: 't.huber@spfh.de' },
-    { firstName: 'Lea', lastName: 'Schmidt', email: 'l.schmidt@spfh.de' },
+    { firstName: 'Anna', lastName: 'Berger', email: 'a.berger@spfh.de', maxClients: 6 },
+    { firstName: 'Markus', lastName: 'Lehner', email: 'm.lehner@spfh.de', maxClients: 6 },
+    { firstName: 'Sara', lastName: 'Wolff', email: 's.wolff@spfh.de', maxClients: 4 },
+    { firstName: 'Tobias', lastName: 'Huber', email: 't.huber@spfh.de', maxClients: 6 },
+    { firstName: 'Lea', lastName: 'Schmidt', email: 'l.schmidt@spfh.de', maxClients: 8 },
 ];
 
 const FAMILY_NAMES = [
@@ -167,6 +167,10 @@ async function run() {
             caseNumber: `JA-${2023 + Math.floor(Math.random() * 3)}-${String(1000 + i).padStart(4, '0')}`,
             children,
             address: pick(ADDRESSES),
+            phone:
+                Math.random() < 0.8
+                    ? `+49 ${150 + Math.floor(Math.random() * 30)} ${1000000 + Math.floor(Math.random() * 8999999)}`
+                    : undefined,
             jugendamtContact: pick(JA_CONTACTS),
             assignedFachkraefte: assigned,
             nextReport: daysAhead(7 + Math.floor(Math.random() * 14)),

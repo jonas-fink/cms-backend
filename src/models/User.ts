@@ -9,6 +9,7 @@ export interface IUser extends Document {
     email: string;
     password: string;
     role: UserRole;
+    maxClients: number;
     comparePassword(candidate: string): Promise<boolean>;
 }
 
@@ -23,6 +24,7 @@ const UserSchema = new Schema<IUser>(
             enum: ['admin', 'fachkraft'],
             default: 'fachkraft',
         },
+        maxClients: { type: Number, default: 6, min: 0, max: 50 },
     },
     { timestamps: true },
 );

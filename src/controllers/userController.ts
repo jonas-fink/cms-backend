@@ -20,7 +20,8 @@ export const createUser: RequestHandler<{}, {}, CreateUserInput> = async (
     next,
 ) => {
     try {
-        const { firstName, lastName, email, password, role } = req.body;
+        const { firstName, lastName, email, password, role, maxClients } =
+            req.body;
 
         let user;
         try {
@@ -30,6 +31,7 @@ export const createUser: RequestHandler<{}, {}, CreateUserInput> = async (
                 email,
                 password,
                 role,
+                maxClients,
             });
         } catch (err) {
             if ((err as { code?: number }).code === 11000) {
@@ -39,7 +41,7 @@ export const createUser: RequestHandler<{}, {}, CreateUserInput> = async (
             throw err;
         }
 
-        res.status(201).json({ data: { user } });
+        res.status(201).json({ data: user });
     } catch (err) {
         next(err);
     }
@@ -57,7 +59,7 @@ export const updateUser: RequestHandler<
             return;
         }
 
-        const { firstName, lastName, email, role } = req.body;
+        const { firstName, lastName, email, role, maxClients } = req.body;
 
         if (email !== undefined) {
             const normalized = email.toLowerCase();
@@ -76,6 +78,7 @@ export const updateUser: RequestHandler<
         if (firstName !== undefined) user.firstName = firstName;
         if (lastName !== undefined) user.lastName = lastName;
         if (role !== undefined) user.role = role;
+        if (maxClients !== undefined) user.maxClients = maxClients;
 
         await user.save();
         res.json({ data: user });
