@@ -10,6 +10,9 @@ export interface IUser extends Document {
     password: string;
     role: UserRole;
     maxClients: number;
+    weeklyTargetMinutes: number;
+    vacationDaysPerYear: number;
+    overtimeMinutes: number;
     comparePassword(candidate: string): Promise<boolean>;
 }
 
@@ -25,6 +28,19 @@ const UserSchema = new Schema<IUser>(
             default: 'fachkraft',
         },
         maxClients: { type: Number, default: 6, min: 0, max: 50 },
+        weeklyTargetMinutes: {
+            type: Number,
+            default: 2400,
+            min: 0,
+            max: 6000,
+        },
+        vacationDaysPerYear: {
+            type: Number,
+            default: 30,
+            min: 0,
+            max: 60,
+        },
+        overtimeMinutes: { type: Number, default: 0 },
     },
     { timestamps: true },
 );

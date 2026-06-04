@@ -20,8 +20,16 @@ export const createUser: RequestHandler<{}, {}, CreateUserInput> = async (
     next,
 ) => {
     try {
-        const { firstName, lastName, email, password, role, maxClients } =
-            req.body;
+        const {
+            firstName,
+            lastName,
+            email,
+            password,
+            role,
+            maxClients,
+            weeklyTargetMinutes,
+            vacationDaysPerYear,
+        } = req.body;
 
         let user;
         try {
@@ -32,6 +40,8 @@ export const createUser: RequestHandler<{}, {}, CreateUserInput> = async (
                 password,
                 role,
                 maxClients,
+                weeklyTargetMinutes,
+                vacationDaysPerYear,
             });
         } catch (err) {
             if ((err as { code?: number }).code === 11000) {
@@ -59,7 +69,16 @@ export const updateUser: RequestHandler<
             return;
         }
 
-        const { firstName, lastName, email, role, maxClients } = req.body;
+        const {
+            firstName,
+            lastName,
+            email,
+            password,
+            role,
+            maxClients,
+            weeklyTargetMinutes,
+            vacationDaysPerYear,
+        } = req.body;
 
         if (email !== undefined) {
             const normalized = email.toLowerCase();
@@ -79,6 +98,11 @@ export const updateUser: RequestHandler<
         if (lastName !== undefined) user.lastName = lastName;
         if (role !== undefined) user.role = role;
         if (maxClients !== undefined) user.maxClients = maxClients;
+        if (weeklyTargetMinutes !== undefined)
+            user.weeklyTargetMinutes = weeklyTargetMinutes;
+        if (vacationDaysPerYear !== undefined)
+            user.vacationDaysPerYear = vacationDaysPerYear;
+        if (password !== undefined) user.password = password;
 
         await user.save();
         res.json({ data: user });
