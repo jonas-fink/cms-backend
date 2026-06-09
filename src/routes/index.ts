@@ -6,3 +6,4 @@ export { default as hilfeplanRoutes } from './hilfePlanRoutes.ts';
 export { default as statsRoutes } from './statsRoutes.ts';
 export { default as documentRoutes } from './documentRoutes.ts';
 export { default as clientDocumentRoutes } from './clientDocumentRoutes.ts';
+export { default as notificationRoutes } from './notificationRoutes.ts';
