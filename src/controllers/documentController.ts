@@ -128,6 +128,35 @@ export const getDocuments: RequestHandler<{ clientId: string }> = async (
     }
 };
 
+// GET /documents  (Admin only) – globale Liste aller bestätigten Dokumente
+export const getAllDocuments: RequestHandler = async (_req, res, next) => {
+    try {
+        const docs = await Document.find({ confirmed: true })
+            .sort({ createdAt: -1 })
+            .populate('clientId', 'familyName caseNumber')
+            .populate('uploadedBy', 'firstName lastName')
+            .lean();
+
+        const withUrls = await Promise.all(
+            docs.map(async (d) => ({
+                id: d._id,
+                fileName: d.fileName,
+                fileType: d.fileType,
+                fileSizeBytes: d.fileSizeBytes,
+                description: d.description,
+                client: d.clientId,
+                uploadedBy: d.uploadedBy,
+                createdAt: d.createdAt,
+                downloadUrl: await createPresignedGetUrl(d.s3Key),
+            })),
+        );
+
+        res.status(200).json({ data: withUrls });
+    } catch (err) {
+        next(err);
+    }
+};
+
 // DELETE /documents/:id
 export const deleteDocument: RequestHandler<{ id: string }> = async (
     req,
