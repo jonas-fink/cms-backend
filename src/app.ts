@@ -11,6 +11,7 @@ import {
     documentRoutes,
     clientDocumentRoutes,
     notificationRoutes,
+    calendarEventRoutes,
 } from '#routes';
 import { errorHandler } from '#middlewares';
 
@@ -37,6 +38,7 @@ app.use('/api/v1/clients/:clientId/documents', clientDocumentRoutes);
 app.use('/api/v1/stats', statsRoutes);
 app.use('/api/v1/documents', documentRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/calendar-events', calendarEventRoutes);
 
 app.use('*splat', (req, res) => res.status(404).json({ message: 'Not Found' }));
 app.use(errorHandler);

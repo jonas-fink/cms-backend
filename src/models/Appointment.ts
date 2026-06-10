@@ -14,6 +14,7 @@ export type MinuteType = 0 | 15 | 30 | 45;
 export interface IAppointment extends Document {
     clientId: Types.ObjectId;
     createdBy: Types.ObjectId;
+    participants: Types.ObjectId[];
     type: AppointmentType;
     status: StatusType;
     date: Date;
@@ -26,6 +27,7 @@ const AppointmentSchema = new Schema<IAppointment>(
     {
         clientId: { type: Types.ObjectId, ref: 'Client' },
         createdBy: { type: Types.ObjectId, ref: 'User' },
+        participants: [{ type: Types.ObjectId, ref: 'User' }],
         type: {
             type: String,
             enum: [

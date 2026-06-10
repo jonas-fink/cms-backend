@@ -25,6 +25,7 @@ export const minuteSchema = z.union([
 
 export const createAppointmentSchema = z.object({
     clientId: objectId,
+    participants: z.array(objectId).default([]),
     type: appointmentTypeSchema.default('Hausbesuch'),
     status: appointmentStatusSchema.default('geplant'),
     date: z.coerce.date(),
@@ -41,6 +42,7 @@ export const updateAppointmentSchema = z
         durationHours: z.number().int().min(0).optional(),
         durationMinutes: minuteSchema.optional(),
         report: z.string().optional(),
+        participants: z.array(objectId).optional(),
     })
     .refine((data) => Object.keys(data).length > 0, {
         message: 'Mindestens ein Feld erforderlich',

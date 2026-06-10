@@ -10,3 +10,14 @@ export {
     type NotificationType,
     NOTIFICATION_TYPES,
 } from './Notification.ts';
+export {
+    default as CalendarEvent,
+    type ICalendarEvent,
+    type ICalendarParticipant,
+    type CalendarEventType,
+    type CalendarEventStatus,
+    type CalendarEventVisibility,
+    type CalendarParticipantResponse,
+    CALENDAR_EVENT_TYPES,
+    CALENDAR_EVENT_STATUSES,
+} from './CalendarEvent.ts';

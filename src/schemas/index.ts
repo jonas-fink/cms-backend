@@ -5,3 +5,4 @@ export * from './documentSchemas.ts';
 export * from './userSchemas.ts';
 export * from './hilfePlanSchemas.ts';
 export * from './notificationSchemas.ts';
+export * from './calendarEventSchemas.ts';

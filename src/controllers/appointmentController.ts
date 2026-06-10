@@ -1,7 +1,8 @@
 import type { RequestHandler } from 'express';
 import mongoose from 'mongoose';
-import { Appointment } from '#models';
+import { Appointment, Client } from '#models';
 import { resolveClientAccess } from '#utils';
+import { createNotificationsForMany } from '#services';
 import type { CreateAppointmentInput, UpdateAppointmentInput } from '#schemas';
 
 type ClientParams = { clientId: string };
@@ -53,11 +54,36 @@ export const createAppointment: RequestHandler<
             return;
         }
 
+        const creatorId = new mongoose.Types.ObjectId(req.userId!);
+        const participantIds = (req.body.participants ?? []).map(
+            (id) => new mongoose.Types.ObjectId(id),
+        );
+
         const appointment = await Appointment.create({
             ...req.body,
+            participants: participantIds,
             clientId: new mongoose.Types.ObjectId(req.params.clientId),
-            createdBy: new mongoose.Types.ObjectId(req.userId!),
+            createdBy: creatorId,
         });
+
+        const inviteRecipients = participantIds.filter(
+            (id) => !id.equals(creatorId),
+        );
+        if (inviteRecipients.length > 0) {
+            const client = await Client.findById(req.params.clientId)
+                .select('familyName')
+                .lean();
+            await createNotificationsForMany(inviteRecipients, {
+                type: 'tandem_invite',
+                title: 'Tandem-Einladung',
+                message: `${client?.familyName ?? 'Klient'} – Termin am ${appointment.date.toLocaleDateString('de-DE')}`,
+                link: `/clients/${req.params.clientId}`,
+                payload: {
+                    appointmentId: String(appointment._id),
+                    clientId: req.params.clientId,
+                },
+            });
+        }
 
         res.status(201).json({ data: appointment });
     } catch (err) {
@@ -125,8 +151,34 @@ export const updateAppointment: RequestHandler<
             return;
         }
 
+        const previousParticipants = new Set(
+            appointment.participants.map((p) => String(p)),
+        );
         Object.assign(appointment, req.body);
         await appointment.save();
+
+        if (req.body.participants) {
+            const newlyInvited = appointment.participants.filter(
+                (p) =>
+                    !previousParticipants.has(String(p)) &&
+                    String(p) !== req.userId,
+            );
+            if (newlyInvited.length > 0) {
+                const client = await Client.findById(req.params.clientId)
+                    .select('familyName')
+                    .lean();
+                await createNotificationsForMany(newlyInvited, {
+                    type: 'tandem_invite',
+                    title: 'Tandem-Einladung',
+                    message: `${client?.familyName ?? 'Klient'} – Termin am ${appointment.date.toLocaleDateString('de-DE')}`,
+                    link: `/clients/${req.params.clientId}`,
+                    payload: {
+                        appointmentId: String(appointment._id),
+                        clientId: req.params.clientId,
+                    },
+                });
+            }
+        }
 
         res.json({ data: appointment });
     } catch (err) {

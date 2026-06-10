@@ -6,3 +6,4 @@ export * from './hilfePlanController.ts';
 export * from './statsController.ts';
 export * from './documentController.ts';
 export * from './notificationController.ts';
+export * from './calendarEventController.ts';
