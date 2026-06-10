@@ -44,7 +44,7 @@ export const markRead: RequestHandler<{ id: string }> = async (
         const notif = await Notification.findOneAndUpdate(
             { _id: req.params.id, userId: req.userId },
             { read: true, readAt: new Date() },
-            { new: true },
+            { returnDocument: 'after' },
         );
         if (!notif) {
             res.status(404).json({ message: 'Notification nicht gefunden' });
