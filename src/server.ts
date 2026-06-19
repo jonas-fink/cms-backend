@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { connectDB } from '#config';
 import app from './app.ts';
 

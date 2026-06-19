@@ -1,13 +1,27 @@
 import type { RequestHandler } from 'express';
-import {
-    startOfISOWeek,
-    endOfISOWeek,
-    startOfMonth,
-    endOfMonth,
-} from 'date-fns';
 import { Client } from '#models';
 import { Appointment } from '#models';
 import { User } from '#models';
+
+function startOfISOWeek(d: Date): Date {
+    const day = d.getDay() || 7;
+    const out = new Date(d);
+    out.setHours(0, 0, 0, 0);
+    out.setDate(d.getDate() - day + 1);
+    return out;
+}
+function endOfISOWeek(d: Date): Date {
+    const out = startOfISOWeek(d);
+    out.setDate(out.getDate() + 6);
+    out.setHours(23, 59, 59, 999);
+    return out;
+}
+function startOfMonth(d: Date): Date {
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+function endOfMonth(d: Date): Date {
+    return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+}
 
 const OVERHEAD_FACTOR = 1.3;
 const CANCELLED_CREDIT_MINUTES = 90;
@@ -115,7 +129,8 @@ export const getWorkload: RequestHandler = async (_req, res, next) => {
                 cancelledCreditedCount += inThisWeek.length;
             }
             const cancelledCreditMinutes =
-                cancelledCreditedCount * applyOverhead(CANCELLED_CREDIT_MINUTES);
+                cancelledCreditedCount *
+                applyOverhead(CANCELLED_CREDIT_MINUTES);
 
             const workedMinutes = performedMinutes + cancelledCreditMinutes;
 
@@ -128,15 +143,13 @@ export const getWorkload: RequestHandler = async (_req, res, next) => {
                 (a) => a.createdBy.toString() === fkId,
             ).length;
 
-            const overdueReports = overdueCandidates.filter(
-                (a) => {
-                    if (a.createdBy.toString() !== fkId) return false;
-                    const r = (a.report ?? '').trim();
-                    // '' wird vom required-Validator ausgeschlossen,
-                    // '-' ist der Sentinel für "Bericht ausstehend".
-                    return r === '' || r === '-';
-                },
-            ).length;
+            const overdueReports = overdueCandidates.filter((a) => {
+                if (a.createdBy.toString() !== fkId) return false;
+                const r = (a.report ?? '').trim();
+                // '' wird vom required-Validator ausgeschlossen,
+                // '-' ist der Sentinel für "Bericht ausstehend".
+                return r === '' || r === '-';
+            }).length;
 
             return {
                 fachkraft: {
@@ -219,8 +232,7 @@ export const getClientHours: RequestHandler<{ id: string }> = async (
             CANCELLED_MAX_PER_MONTH,
         );
         const cancelledInWeek = eligibleCancelled.filter(
-            (a) =>
-                new Date(a.date) >= weekStart && new Date(a.date) <= weekEnd,
+            (a) => new Date(a.date) >= weekStart && new Date(a.date) <= weekEnd,
         );
         const cancelledCreditedCount = cancelledInWeek.length;
         const cancelledCreditMinutes =
